@@ -3,6 +3,7 @@ namespace Psalm\Internal\Analyzer\Statements\Expression\BinaryOp;
 
 use PhpParser;
 use Psalm\Internal\Analyzer\StatementsAnalyzer;
+use Psalm\Internal\Analyzer\Statements\Expression\BinaryOpAnalyzer;
 use Psalm\Context;
 use Psalm\Type;
 use Psalm\Type\Atomic\TFloat;
@@ -66,6 +67,14 @@ class NonComparisonOpAnalyzer
                 $statements_analyzer->node_data->setType($stmt, $result_type);
             }
 
+            BinaryOpAnalyzer::addControlFlow(
+                $statements_analyzer,
+                $stmt,
+                $stmt->left,
+                $stmt->right,
+                'nondivop'
+            );
+
             return;
         }
 
@@ -74,6 +83,14 @@ class NonComparisonOpAnalyzer
                 $statements_analyzer->node_data->setType($stmt, Type::getInt());
             }
 
+            BinaryOpAnalyzer::addControlFlow(
+                $statements_analyzer,
+                $stmt,
+                $stmt->left,
+                $stmt->right,
+                'xor'
+            );
+
             return;
         }
 
@@ -81,6 +98,14 @@ class NonComparisonOpAnalyzer
             if ($stmt_left_type->hasBool() || $stmt_right_type->hasBool()) {
                 $statements_analyzer->node_data->setType($stmt, Type::getBool());
             }
+
+            BinaryOpAnalyzer::addControlFlow(
+                $statements_analyzer,
+                $stmt,
+                $stmt->left,
+                $stmt->right,
+                'xor'
+            );
 
             return;
         }
@@ -104,6 +129,14 @@ class NonComparisonOpAnalyzer
                 $statements_analyzer->node_data->setType($stmt, $result_type);
             }
 
+            BinaryOpAnalyzer::addControlFlow(
+                $statements_analyzer,
+                $stmt,
+                $stmt->left,
+                $stmt->right,
+                'div'
+            );
+
             return;
         }
 
@@ -116,6 +149,14 @@ class NonComparisonOpAnalyzer
                 $stmt,
                 $result_type,
                 $context
+            );
+
+            BinaryOpAnalyzer::addControlFlow(
+                $statements_analyzer,
+                $stmt,
+                $stmt->left,
+                $stmt->right,
+                'or'
             );
         }
     }

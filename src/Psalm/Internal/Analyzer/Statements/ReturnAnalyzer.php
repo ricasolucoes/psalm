@@ -15,6 +15,7 @@ use Psalm\CodeLocation;
 use Psalm\Context;
 use Psalm\Exception\DocblockParseException;
 use Psalm\Internal\ControlFlow\ControlFlowNode;
+use Psalm\Internal\Codebase\TaintFlowGraph;
 use Psalm\Internal\Type\TemplateResult;
 use Psalm\Issue\FalsableReturnStatement;
 use Psalm\Issue\InvalidDocblock;
@@ -205,7 +206,7 @@ class ReturnAnalyzer
                     $source->getParentFQCLN()
                 );
 
-                if ($statements_analyzer->control_flow_graph) {
+                if ($statements_analyzer->control_flow_graph instanceof TaintFlowGraph) {
                     self::handleTaints(
                         $statements_analyzer,
                         $stmt,
@@ -512,7 +513,10 @@ class ReturnAnalyzer
         Type\Union $inferred_type,
         \Psalm\Storage\FunctionLikeStorage $storage
     ) : void {
-        if (!$statements_analyzer->control_flow_graph || !$stmt->expr || !$storage->location) {
+        if (!$statements_analyzer->control_flow_graph instanceof TaintFlowGraph
+            || !$stmt->expr
+            || !$storage->location
+        ) {
             return;
         }
 

@@ -17,6 +17,7 @@ use Psalm\Context;
 use Psalm\Internal\FileManipulation\FileManipulationBuffer;
 use Psalm\Internal\ControlFlow\TaintSource;
 use Psalm\Internal\ControlFlow\ControlFlowNode;
+use Psalm\Internal\Codebase\TaintFlowGraph;
 use Psalm\Issue\DeprecatedFunction;
 use Psalm\Issue\ForbiddenCode;
 use Psalm\Issue\MixedFunctionCall;
@@ -1059,7 +1060,7 @@ class FunctionCallAnalyzer extends CallAnalyzer
         FunctionLikeStorage $function_storage,
         Type\Union $stmt_type
     ) : void {
-        if (!$statements_analyzer->control_flow_graph
+        if (!$statements_analyzer->control_flow_graph instanceof TaintFlowGraph
             || \in_array('TaintedInput', $statements_analyzer->getSuppressedIssues())
         ) {
             return;
@@ -1291,6 +1292,7 @@ class FunctionCallAnalyzer extends CallAnalyzer
                 && $codebase->find_unused_variables
                 && !$context->inside_conditional
                 && !$context->inside_unset
+                && !$context->inside_use
             ) {
                 if (!$context->inside_assignment && !$context->inside_call) {
                     if (IssueBuffer::accepts(

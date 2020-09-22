@@ -221,6 +221,14 @@ class AtomicMethodCallAnalyzer extends CallAnalyzer
                 );
             }
 
+            ArgumentsAnalyzer::analyze(
+                $statements_analyzer,
+                $stmt->args,
+                null,
+                null,
+                $context
+            );
+
             $result->return_type = Type::getMixed();
             return;
         }

@@ -84,8 +84,6 @@ class IncDecExpressionAnalyzer
                             $var_id,
                             $location
                         );
-
-                        $context->unreferenced_vars[$var_id] = [$location->getHash() => $location];
                     }
                 }
 
@@ -103,11 +101,13 @@ class IncDecExpressionAnalyzer
             $operation = $stmt instanceof PostInc || $stmt instanceof PreInc
                 ? new PhpParser\Node\Expr\BinaryOp\Plus(
                     $stmt->var,
-                    $fake_right_expr
+                    $fake_right_expr,
+                    $stmt->var->getAttributes()
                 )
                 : new PhpParser\Node\Expr\BinaryOp\Minus(
                     $stmt->var,
-                    $fake_right_expr
+                    $fake_right_expr,
+                    $stmt->var->getAttributes()
                 );
 
             $fake_assignment = new PhpParser\Node\Expr\Assign(

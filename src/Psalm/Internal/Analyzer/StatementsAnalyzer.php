@@ -20,6 +20,8 @@ use Psalm\Internal\Analyzer\Statements\ReturnAnalyzer;
 use Psalm\Internal\Analyzer\Statements\ThrowAnalyzer;
 use Psalm\Internal\Scanner\ParsedDocblock;
 use Psalm\Internal\Codebase\ControlFlowGraph;
+use Psalm\Internal\Codebase\TaintFlowGraph;
+use Psalm\Internal\ControlFlow\ControlFlowNode;
 use Psalm\Codebase;
 use Psalm\CodeLocation;
 use Psalm\Context;
@@ -104,11 +106,6 @@ class StatementsAnalyzer extends SourceAnalyzer implements StatementsSource
     private $unused_var_locations = [];
 
     /**
-     * @var array<string, bool>
-     */
-    private $used_var_locations = [];
-
-    /**
      * @var ?array<string, bool>
      */
     public $byref_uses;
@@ -135,9 +132,12 @@ class StatementsAnalyzer extends SourceAnalyzer implements StatementsSource
         $this->file_analyzer = $source->getFileAnalyzer();
         $this->codebase = $source->getCodebase();
         $this->node_data = $node_data;
-        $this->control_flow_graph = $this->codebase->control_flow_graph
-            ? new ControlFlowGraph()
-            : null;
+
+        if ($this->codebase->taint_flow_graph) {
+            $this->control_flow_graph = new TaintFlowGraph();
+        } elseif ($this->codebase->find_unused_variables) {
+            $this->control_flow_graph = new ControlFlowGraph();
+        }
     }
 
     /**
@@ -194,11 +194,11 @@ class StatementsAnalyzer extends SourceAnalyzer implements StatementsSource
         }
 
         if ($root_scope
-            && $this->control_flow_graph
-            && $this->codebase->control_flow_graph
+            && $this->control_flow_graph instanceof TaintFlowGraph
+            && $this->codebase->taint_flow_graph
             && $codebase->config->trackTaintsInPath($this->getFilePath())
         ) {
-            $this->codebase->control_flow_graph->addGraph($this->control_flow_graph);
+            $this->codebase->taint_flow_graph->addGraph($this->control_flow_graph);
         }
 
         return null;
@@ -677,8 +677,8 @@ class StatementsAnalyzer extends SourceAnalyzer implements StatementsSource
 
         $unused_var_remover = new Statements\UnusedAssignmentRemover();
 
-        foreach ($this->unused_var_locations as $hash => [$var_id, $original_location]) {
-            if (substr($var_id, 0, 2) === '$_' || isset($this->used_var_locations[$hash])) {
+        foreach ($this->unused_var_locations as [$var_id, $original_location]) {
+            if (substr($var_id, 0, 2) === '$_') {
                 continue;
             }
 
@@ -696,8 +696,11 @@ class StatementsAnalyzer extends SourceAnalyzer implements StatementsSource
                 }
             }
 
+            $assignment_node = ControlFlowNode::getForAssignment($var_id, $original_location);
+
             if (!isset($this->byref_uses[$var_id])
                 && !VariableFetchAnalyzer::isSuperGlobal($var_id)
+                && !$this->control_flow_graph->isVariableUsed($assignment_node)
             ) {
                 $issue = new UnusedVariable(
                     'Variable ' . $var_id . ' is never referenced',
@@ -751,22 +754,11 @@ class StatementsAnalyzer extends SourceAnalyzer implements StatementsSource
     }
 
     /**
-     * @param array<string, CodeLocation> $locations
-     */
-    public function registerVariableUses(array $locations): void
-    {
-        foreach ($locations as $hash => $_) {
-            unset($this->unused_var_locations[$hash]);
-            $this->used_var_locations[$hash] = true;
-        }
-    }
-
-    /**
      * @return array<string, array{0: string, 1: CodeLocation}>
      */
     public function getUnusedVarLocations(): array
     {
-        return \array_diff_key($this->unused_var_locations, $this->used_var_locations);
+        return $this->unused_var_locations;
     }
 
     /**

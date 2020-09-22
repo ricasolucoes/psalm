@@ -187,13 +187,6 @@ class CoalesceAnalyzer
             $t_if_context->referenced_var_ids
         );
 
-        if ($codebase->find_unused_variables) {
-            $context->unreferenced_vars = array_intersect_key(
-                $t_if_context->unreferenced_vars,
-                $context->unreferenced_vars
-            );
-        }
-
         $t_else_context = clone $context;
 
         if ($negated_if_types) {
@@ -220,13 +213,6 @@ class CoalesceAnalyzer
             $context->referenced_var_ids,
             $t_else_context->referenced_var_ids
         );
-
-        if ($codebase->find_unused_variables) {
-            $context->unreferenced_vars = array_intersect_key(
-                $t_else_context->unreferenced_vars,
-                $context->unreferenced_vars
-            );
-        }
 
         $lhs_type = null;
 

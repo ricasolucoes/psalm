@@ -75,8 +75,13 @@ class ArrayFetchAnalyzer
             $statements_analyzer
         );
 
-        if ($stmt->dim && ExpressionAnalyzer::analyze($statements_analyzer, $stmt->dim, $context) === false) {
-            return false;
+        if ($stmt->dim) {
+            $was_inside_use = $context->inside_use;
+            $context->inside_use = true;
+            if (ExpressionAnalyzer::analyze($statements_analyzer, $stmt->dim, $context) === false) {
+                return false;
+            }
+            $context->inside_use = $was_inside_use;
         }
 
         $keyed_array_var_id = ExpressionIdentifier::getArrayVarId(
@@ -253,7 +258,7 @@ class ArrayFetchAnalyzer
         }
 
         if ($keyed_array_var_id
-            && $context->hasVariable($keyed_array_var_id, $statements_analyzer)
+            && $context->hasVariable($keyed_array_var_id)
             && (!($stmt_type = $statements_analyzer->node_data->getType($stmt)) || $stmt_type->isVanillaMixed())
         ) {
             $statements_analyzer->node_data->setType($stmt, $context->vars_in_scope[$keyed_array_var_id]);
@@ -291,7 +296,7 @@ class ArrayFetchAnalyzer
             $context->vars_possibly_in_scope[$keyed_array_var_id] = true;
 
             // reference the variable too
-            $context->hasVariable($keyed_array_var_id, $statements_analyzer);
+            $context->hasVariable($keyed_array_var_id);
         }
 
         self::taintArrayFetch(

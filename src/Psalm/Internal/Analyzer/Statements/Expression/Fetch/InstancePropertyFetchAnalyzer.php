@@ -62,9 +62,14 @@ class InstancePropertyFetchAnalyzer
             }
         }
 
+        $was_inside_use = $context->inside_use;
+        $context->inside_use = true;
+
         if (ExpressionAnalyzer::analyze($statements_analyzer, $stmt->var, $context) === false) {
             return false;
         }
+
+        $context->inside_use = $was_inside_use;
 
         if ($stmt->name instanceof PhpParser\Node\Identifier) {
             $prop_name = $stmt->name->name;
@@ -92,7 +97,7 @@ class InstancePropertyFetchAnalyzer
 
         $stmt_type = null;
 
-        if ($var_id && $context->hasVariable($var_id, $statements_analyzer)) {
+        if ($var_id && $context->hasVariable($var_id)) {
             $stmt_type = $context->vars_in_scope[$var_id];
 
             // we don't need to check anything
@@ -243,7 +248,7 @@ class InstancePropertyFetchAnalyzer
             return true;
         }
 
-        if ($stmt_var_id && $context->hasVariable($stmt_var_id, $statements_analyzer)) {
+        if ($stmt_var_id && $context->hasVariable($stmt_var_id)) {
             $stmt_var_type = $context->vars_in_scope[$stmt_var_id];
         } else {
             $stmt_var_type = $statements_analyzer->node_data->getType($stmt->var);

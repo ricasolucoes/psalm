@@ -14,6 +14,7 @@ use Psalm\Internal\Type\Comparator\CallableTypeComparator;
 use Psalm\Internal\Type\Comparator\UnionTypeComparator;
 use Psalm\Internal\ControlFlow\TaintSink;
 use Psalm\Internal\ControlFlow\ControlFlowNode;
+use Psalm\Internal\Codebase\TaintFlowGraph;
 use Psalm\Internal\Type\TemplateResult;
 use Psalm\Internal\Type\UnionTemplateHandler;
 use Psalm\CodeLocation;
@@ -1225,7 +1226,7 @@ class ArgumentAnalyzer
             return $input_type;
         }
 
-        if ($function_param->type && $function_param->type->isString()) {
+        if ($function_param->type && $function_param->type->isString() && !$input_type->isString()) {
             $input_type = CastAnalyzer::castStringAttempt(
                 $statements_analyzer,
                 $context,
@@ -1300,7 +1301,7 @@ class ArgumentAnalyzer
 
         $statements_analyzer->control_flow_graph->addPath($argument_value_node, $method_node, 'arg');
 
-        if ($function_param->sinks) {
+        if ($function_param->sinks && $statements_analyzer->control_flow_graph instanceof TaintFlowGraph) {
             if ($specialize_taint) {
                 $sink = TaintSink::getForMethodArgument(
                     $cased_method_id,

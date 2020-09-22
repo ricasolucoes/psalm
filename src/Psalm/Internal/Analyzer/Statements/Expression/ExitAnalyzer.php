@@ -6,6 +6,7 @@ use Psalm\Internal\Analyzer\Statements\ExpressionAnalyzer;
 use Psalm\Internal\Analyzer\Statements\Expression\Call\ArgumentAnalyzer;
 use Psalm\Internal\Analyzer\StatementsAnalyzer;
 use Psalm\Internal\ControlFlow\TaintSink;
+use Psalm\Internal\Codebase\TaintFlowGraph;
 use Psalm\CodeLocation;
 use Psalm\Context;
 use Psalm\Storage\FunctionLikeParameter;
@@ -27,7 +28,8 @@ class ExitAnalyzer
                 return false;
             }
 
-            if ($statements_analyzer->control_flow_graph) {
+            if ($statements_analyzer->control_flow_graph instanceof TaintFlowGraph
+            ) {
                 $call_location = new CodeLocation($statements_analyzer->getSource(), $stmt);
 
                 $echo_param_sink = TaintSink::getForMethodArgument(

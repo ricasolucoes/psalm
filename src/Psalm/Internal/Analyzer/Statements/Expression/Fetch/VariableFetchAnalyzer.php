@@ -7,6 +7,7 @@ use Psalm\Internal\Analyzer\Statements\Expression\AssignmentAnalyzer;
 use Psalm\Internal\Analyzer\Statements\ExpressionAnalyzer;
 use Psalm\Internal\Analyzer\StatementsAnalyzer;
 use Psalm\Internal\ControlFlow\TaintSource;
+use Psalm\Internal\Codebase\TaintFlowGraph;
 use Psalm\CodeLocation;
 use Psalm\Context;
 use Psalm\Issue\ImpureVariable;
@@ -127,7 +128,7 @@ class VariableFetchAnalyzer
             if (is_string($stmt->name)) {
                 $var_name = '$' . $stmt->name;
 
-                if (!$context->hasVariable($var_name, $statements_analyzer)) {
+                if (!$context->hasVariable($var_name)) {
                     $context->vars_in_scope[$var_name] = Type::getMixed();
                     $context->vars_possibly_in_scope[$var_name] = true;
                     $statements_analyzer->node_data->setType($stmt, Type::getMixed());
@@ -182,7 +183,12 @@ class VariableFetchAnalyzer
                 $statements_analyzer->getSource()->inferred_impure = true;
             }
 
-            return ExpressionAnalyzer::analyze($statements_analyzer, $stmt->name, $context);
+            $was_inside_use = $context->inside_use;
+            $context->inside_use = true;
+            $expr_result = ExpressionAnalyzer::analyze($statements_analyzer, $stmt->name, $context);
+            $context->inside_use = $was_inside_use;
+
+            return $expr_result;
         }
 
         if ($passed_by_reference && $by_ref_type) {
@@ -199,7 +205,7 @@ class VariableFetchAnalyzer
 
         $var_name = '$' . $stmt->name;
 
-        if (!$context->hasVariable($var_name, !$array_assignment ? $statements_analyzer : null)) {
+        if (!$context->hasVariable($var_name)) {
             if (!isset($context->vars_possibly_in_scope[$var_name]) ||
                 !$statements_analyzer->getFirstAppearance($var_name)
             ) {
@@ -322,13 +328,25 @@ class VariableFetchAnalyzer
                         $first_appearance->raw_file_start . '-' . $first_appearance->raw_file_end . ':mixed'
                     );
                 }
-
-                $statements_analyzer->registerVariableUses([$first_appearance->getHash() => $first_appearance]);
             }
         } else {
             $stmt_type = clone $context->vars_in_scope[$var_name];
 
             $statements_analyzer->node_data->setType($stmt, $stmt_type);
+
+            if ($statements_analyzer->control_flow_graph
+                && $codebase->find_unused_variables
+                && ($context->inside_call || $context->inside_conditional || $context->inside_use)
+                && $stmt_type->parent_nodes
+            ) {
+                foreach ($stmt_type->parent_nodes as $parent_node) {
+                    $statements_analyzer->control_flow_graph->addPath(
+                        $parent_node,
+                        new \Psalm\Internal\ControlFlow\ControlFlowNode('variable-use', 'variable use', null),
+                        'variable-use'
+                    );
+                }
+            }
 
             if ($stmt_type->possibly_undefined_from_try && !$context->inside_isset) {
                 if ($context->is_global) {
@@ -393,7 +411,7 @@ class VariableFetchAnalyzer
         Type\Union $type,
         PhpParser\Node\Expr\Variable $stmt
     ) : void {
-        if ($statements_analyzer->control_flow_graph
+        if ($statements_analyzer->control_flow_graph instanceof TaintFlowGraph
             && !\in_array('TaintedInput', $statements_analyzer->getSuppressedIssues())
         ) {
             if ($var_name === '$_GET'

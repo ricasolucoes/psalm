@@ -71,6 +71,19 @@ class ExpressionAnalyzer
             }
         }
 
+        if ($statements_analyzer->control_flow_graph
+            && !$statements_analyzer->control_flow_graph instanceof \Psalm\Internal\Codebase\TaintFlowGraph
+            && $codebase->find_unused_variables
+        ) {
+            $expr_type = $statements_analyzer->node_data->getType($stmt);
+
+            if ($expr_type && !$expr_type->parent_nodes) {
+                $expr_type->parent_nodes = [
+                    new \Psalm\Internal\ControlFlow\ControlFlowNode('const', 'constant value', null)
+                ];
+            }
+        }
+
         $plugin_classes = $codebase->config->after_expression_checks;
 
         if ($plugin_classes) {
