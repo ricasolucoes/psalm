@@ -78,8 +78,9 @@ class ExpressionAnalyzer
             $expr_type = $statements_analyzer->node_data->getType($stmt);
 
             if ($expr_type && !$expr_type->parent_nodes) {
+                $const_node = new \Psalm\Internal\ControlFlow\ControlFlowNode('const', 'constant value', null);
                 $expr_type->parent_nodes = [
-                    new \Psalm\Internal\ControlFlow\ControlFlowNode('const', 'constant value', null)
+                    $const_node->id => $const_node
                 ];
             }
         }

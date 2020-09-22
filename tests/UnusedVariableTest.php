@@ -1584,6 +1584,132 @@ class UnusedVariableTest extends TestCase
                         echo $c;
                     }',
             ],
+            'unusedArrayAdditionWithArrayChecked' => [
+                '<?php
+                    $a = [];
+
+                    while (rand(0,1)) {
+                        $a[] = 1;
+                    }
+
+                    if ($a) {}',
+            ],
+            'usedArrayRecursiveAddition' => [
+                '<?php
+                    $a = [];
+
+                    while (rand(0,1)) {
+                        $a[] = $a;
+                    }
+
+                    print_r($a);',
+            ],
+            'usedImmutableProperty' => [
+                '<?php
+                    /**
+                     * @psalm-immutable
+                     */
+                    class Clause {
+                        /**
+                         * @var array<int, int>
+                         */
+                        public $b = [];
+                    }
+
+                    function foo(Clause $c, int $var): void {
+                        $new_b = $c->b;
+
+                        if (isset($c->b[0])) {
+                            $new_b[$var] = 0;
+                        }
+
+                        if ($new_b) {}
+                    }',
+            ],
+            'arrayAssignOpAdditionInsideLoop' => [
+                '<?php
+                    /**
+                     * @param array<string, string> $arr0
+                     * @param array<string, string> $arr1
+                     * @param array<string, string> $arr2
+                     * @return void
+                     */
+                    function parp(array $arr0, array $arr1, array $arr2) {
+                        $arr3 = $arr0;
+
+                        foreach ($arr1 as $a) {
+                            echo $a;
+                            $arr3 += $arr2;
+                        }
+
+                        if ($arr3) {}
+                    }',
+            ],
+            'arrayAdditionInsideLoop' => [
+                '<?php
+                    /**
+                     * @param array<string, string> $arr0
+                     * @param array<string, string> $arr1
+                     * @param array<string, string> $arr2
+                     * @return void
+                     */
+                    function parp(array $arr0, array $arr1, array $arr2) {
+                        $arr3 = $arr0;
+
+                        foreach ($arr1 as $a) {
+                            echo $a;
+                            $arr3 = $arr3 + $arr2;
+                        }
+
+                        if ($arr3) {}
+                    }',
+            ],
+            'checkValueBeforeAdding' => [
+                '<?php
+                    class T {
+                        public bool $b = false;
+                    }
+
+                    function foo(
+                        ?T $t
+                    ): void {
+                        if (!$t) {
+                            $t = new T();
+                        } elseif (rand(0, 1)) {
+                            //
+                        }
+
+                        if ($t->b) {}
+                    }'
+            ],
+            'loopOverUnknown' => [
+                '<?php
+                    /** @psalm-suppress MixedAssignment */
+                    function foo(Traversable $t) : void {
+                        foreach ($t as $u) {
+                            if ($u instanceof stdClass) {}
+                        }
+                    }'
+            ],
+            'loopWithRequire' => [
+                '<?php
+                    /**
+                     * @psalm-suppress UnresolvableInclude
+                     */
+                    function foo(string $delta_file) : void {
+                        while (rand(0, 1)) {
+                            /**
+                             * @var array<string, mixed>
+                             */
+                            $diff_call_map = require($delta_file);
+
+                            foreach ($diff_call_map as $key => $_) {
+                                $cased_key = strtolower($key);
+                                echo $cased_key;
+                            }
+                        }
+                    }',
+            ],
         ];
     }
 
@@ -2393,6 +2519,24 @@ class UnusedVariableTest extends TestCase
                         echo $c;
                     }',
                 'error_message' => 'UnusedClosureParam',
+            ],
+            'unusedArrayConstantAddition' => [
+                '<?php
+                    $a = [];
+
+                    while (rand(0,1)) {
+                        $a[] = 1;
+                    }',
+                'error_message' => 'UnusedVariable',
+            ],
+            'unusedArrayRecursiveAddition' => [
+                '<?php
+                    $a = [];
+
+                    while (rand(0,1)) {
+                        $a[] = $a;
+                    }',
+                'error_message' => 'UnusedVariable',
             ],
         ];
     }

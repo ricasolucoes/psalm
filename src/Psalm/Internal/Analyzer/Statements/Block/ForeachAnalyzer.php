@@ -183,11 +183,12 @@ class ForeachAnalyzer
             }
         }
 
+        $was_inside_use = $context->inside_use;
         $context->inside_use = true;
         if (ExpressionAnalyzer::analyze($statements_analyzer, $stmt->expr, $context) === false) {
             return false;
         }
-        $context->inside_use = false;
+        $context->inside_use = $was_inside_use;
 
         $key_type = null;
         $value_type = null;
@@ -240,10 +241,17 @@ class ForeachAnalyzer
         if ($stmt->keyVar && $stmt->keyVar instanceof PhpParser\Node\Expr\Variable && is_string($stmt->keyVar->name)) {
             $key_type = $key_type ?: Type::getMixed();
 
+            if (!$key_type->parent_nodes) {
+                $const_node = new \Psalm\Internal\ControlFlow\ControlFlowNode('const', 'constant value', null);
+                $key_type->parent_nodes = [
+                    $const_node->id => $const_node
+                ];
+            }
+
             AssignmentAnalyzer::analyze(
                 $statements_analyzer,
                 $stmt->keyVar,
-                null,
+                $stmt->expr,
                 $key_type,
                 $foreach_context,
                 $doc_comment
@@ -264,6 +272,13 @@ class ForeachAnalyzer
         }
 
         $value_type = $value_type ?: Type::getMixed();
+
+        if (!$value_type->parent_nodes) {
+            $const_node = new \Psalm\Internal\ControlFlow\ControlFlowNode('const', 'constant value', null);
+            $value_type->parent_nodes = [
+                $const_node->id => $const_node
+            ];
+        }
 
         AssignmentAnalyzer::analyze(
             $statements_analyzer,

@@ -83,8 +83,8 @@ class ControlFlowGraph
     }
 
     /**
-     * @param array<string> $visited_source_ids
-     * @return ?array<string>
+     * @param array<string, bool> $visited_source_ids
+     * @return ?array<ControlFlowNode>
      */
     private function getChildNodes(
         ControlFlowNode $generated_source,

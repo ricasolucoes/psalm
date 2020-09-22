@@ -160,8 +160,14 @@ class AssignmentAnalyzer
 
             $was_inside_use = $context->inside_use;
 
+            $root_expr = $assign_var;
+
+            while ($root_expr instanceof PhpParser\Node\Expr\ArrayDimFetch) {
+                $root_expr = $root_expr->var;
+            }
+
             // if we don't know where this data is going, treat as a dead-end usage
-            if (!$assign_var instanceof PhpParser\Node\Expr\Variable) {
+            if (!$root_expr instanceof PhpParser\Node\Expr\Variable) {
                 $context->inside_use = true;
             }
 
@@ -207,12 +213,27 @@ class AssignmentAnalyzer
                 }
             }
 
+            $parent_nodes = $temp_assign_value_type->parent_nodes ?? [];
+
+            if (!$parent_nodes) {
+                $const_node = new ControlFlowNode('const', 'constant value', null);
+                $parent_nodes = [
+                    $const_node->id => $const_node
+                ];
+            }
+
             $assign_value_type = $comment_type;
-            $assign_value_type->parent_nodes = $temp_assign_value_type->parent_nodes ?? [];
+            $assign_value_type->parent_nodes = $parent_nodes;
         } elseif (!$assign_value_type) {
-            $assign_value_type = $assign_value
-                ? ($statements_analyzer->node_data->getType($assign_value) ?: Type::getMixed())
-                : Type::getMixed();
+            if ($assign_value) {
+                $assign_value_type = $statements_analyzer->node_data->getType($assign_value);
+            }
+
+            if ($assign_value_type) {
+                $assign_value_type = clone $assign_value_type;
+            } else {
+                $assign_value_type = Type::getMixed();
+            }
         }
 
         if ($array_var_id && isset($context->vars_in_scope[$array_var_id])) {
@@ -534,7 +555,7 @@ class AssignmentAnalyzer
                                     $assign_value,
                                     $keyed_array_var_id,
                                     $value_type,
-                                    Type::getString($offset_value)
+                                    Type::getString((string) $offset_value)
                                 );
                             }
 
@@ -738,7 +759,7 @@ class AssignmentAnalyzer
                                 }
                             }
 
-                            if ($statements_analyzer->control_flow_graph && $assign_value) {
+                            if ($statements_analyzer->control_flow_graph && $assign_value && $new_assign_type) {
                                 ArrayFetchAnalyzer::taintArrayFetch(
                                     $statements_analyzer,
                                     $assign_value,
@@ -831,7 +852,9 @@ class AssignmentAnalyzer
                                         $control_flow_graph->addPath($parent_node, $new_parent_node, '=', [], $removed_taints);
                                     }
 
-                                    $context->vars_in_scope[$list_var_id]->parent_nodes = [$new_parent_node];
+                                    $context->vars_in_scope[$list_var_id]->parent_nodes = [
+                                        $new_parent_node->id => $new_parent_node
+                                    ];
                                 }
                             }
                         }
@@ -861,7 +884,7 @@ class AssignmentAnalyzer
                     return false;
                 }
 
-                $was_inside_use = $context->inside_use;
+                $context->inside_use = $was_inside_use;
             }
 
             if ($assign_var->name instanceof PhpParser\Node\Identifier) {
@@ -1019,7 +1042,9 @@ class AssignmentAnalyzer
                             $control_flow_graph->addPath($parent_node, $new_parent_node, '=', [], $removed_taints);
                         }
 
-                        $context->vars_in_scope[$var_id]->parent_nodes = [$new_parent_node];
+                        $context->vars_in_scope[$var_id]->parent_nodes = [
+                            $new_parent_node->id => $new_parent_node
+                        ];
                     }
                 }
             }
@@ -1355,7 +1380,9 @@ class AssignmentAnalyzer
                     $new_parent_node = ControlFlowNode::getForAssignment($array_var_id, $var_location);
                     $statements_analyzer->control_flow_graph->addNode($new_parent_node);
 
-                    $result_type->parent_nodes = [$new_parent_node];
+                    $result_type->parent_nodes = [
+                        $new_parent_node->id => $new_parent_node
+                    ];
 
                     if ($stmt_left_type && $stmt_left_type->parent_nodes) {
                         foreach ($stmt_left_type->parent_nodes as $parent_node) {
@@ -1404,7 +1431,10 @@ class AssignmentAnalyzer
             );
         }
 
-        if ($statements_analyzer->control_flow_graph && isset($context->vars_in_scope[$array_var_id])) {
+        if ($statements_analyzer->control_flow_graph
+            && $array_var_id
+            && isset($context->vars_in_scope[$array_var_id])
+        ) {
             $control_flow_graph = $statements_analyzer->control_flow_graph;
 
             if ($context->vars_in_scope[$array_var_id]->parent_nodes) {
@@ -1421,7 +1451,9 @@ class AssignmentAnalyzer
                         $control_flow_graph->addPath($parent_node, $new_parent_node, '=');
                     }
 
-                    $context->vars_in_scope[$array_var_id]->parent_nodes = [$new_parent_node];
+                    $context->vars_in_scope[$array_var_id]->parent_nodes = [
+                        $new_parent_node->id => $new_parent_node
+                    ];
                 }
             }
         }

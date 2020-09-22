@@ -1199,7 +1199,9 @@ abstract class FunctionLikeAnalyzer extends SourceAnalyzer
                 ]);
             }
 
-            if ($statements_analyzer->control_flow_graph) {
+            if ($statements_analyzer->control_flow_graph
+                && $function_param->location
+            ) {
                 $param_assignment = ControlFlowNode::getForAssignment(
                     '$' . $function_param->name,
                     $function_param->location
@@ -1219,7 +1221,7 @@ abstract class FunctionLikeAnalyzer extends SourceAnalyzer
                     $statements_analyzer->control_flow_graph->addPath($type_source, $param_assignment, 'param');
                 }
 
-                $var_type->parent_nodes = [$param_assignment];
+                $var_type->parent_nodes = [$param_assignment->id => $param_assignment];
             }
 
             $context->vars_in_scope['$' . $function_param->name] = $var_type;
@@ -1231,11 +1233,13 @@ abstract class FunctionLikeAnalyzer extends SourceAnalyzer
 
             $parser_param = $this->function->getParams()[$offset];
 
-            $statements_analyzer->registerVariable(
-                '$' . $function_param->name,
-                $function_param->location,
-                null
-            );
+            if ($function_param->location) {
+                $statements_analyzer->registerVariable(
+                    '$' . $function_param->name,
+                    $function_param->location,
+                    null
+                );
+            }
 
             if (!$function_param->type_location || !$function_param->location) {
                 if ($parser_param->default) {

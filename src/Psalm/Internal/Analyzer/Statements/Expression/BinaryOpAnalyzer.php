@@ -36,12 +36,17 @@ class BinaryOpAnalyzer
         if ($stmt instanceof PhpParser\Node\Expr\BinaryOp\BooleanAnd ||
             $stmt instanceof PhpParser\Node\Expr\BinaryOp\LogicalAnd
         ) {
+            $was_inside_use = $context->inside_use;
+            $context->inside_use = true;
+
             $expr_result = BinaryOp\AndAnalyzer::analyze(
                 $statements_analyzer,
                 $stmt,
                 $context,
                 $from_stmt
             );
+
+            $context->inside_use = $was_inside_use;
 
             $statements_analyzer->node_data->setType($stmt, Type::getBool());
 
@@ -51,12 +56,17 @@ class BinaryOpAnalyzer
         if ($stmt instanceof PhpParser\Node\Expr\BinaryOp\BooleanOr ||
             $stmt instanceof PhpParser\Node\Expr\BinaryOp\LogicalOr
         ) {
+            $was_inside_use = $context->inside_use;
+            $context->inside_use = true;
+
             $expr_result = BinaryOp\OrAnalyzer::analyze(
                 $statements_analyzer,
                 $stmt,
                 $context,
                 $from_stmt
             );
+
+            $context->inside_use = $was_inside_use;
 
             $statements_analyzer->node_data->setType($stmt, Type::getBool());
 
@@ -82,7 +92,7 @@ class BinaryOpAnalyzer
         }
 
         if ($stmt->left instanceof PhpParser\Node\Expr\BinaryOp) {
-            if (self::analyze($statements_analyzer, $stmt->left, $context, ++$nesting) === false) {
+            if (self::analyze($statements_analyzer, $stmt->left, $context, $nesting + 1) === false) {
                 return false;
             }
         } else {
@@ -92,7 +102,7 @@ class BinaryOpAnalyzer
         }
 
         if ($stmt->right instanceof PhpParser\Node\Expr\BinaryOp) {
-            if (self::analyze($statements_analyzer, $stmt->right, $context, ++$nesting) === false) {
+            if (self::analyze($statements_analyzer, $stmt->right, $context, $nesting + 1) === false) {
                 return false;
             }
         } else {
@@ -127,7 +137,9 @@ class BinaryOpAnalyzer
                 $new_parent_node = ControlFlowNode::getForAssignment('concat', $var_location);
                 $statements_analyzer->control_flow_graph->addNode($new_parent_node);
 
-                $stmt_type->parent_nodes = [$new_parent_node];
+                $stmt_type->parent_nodes = [
+                    $new_parent_node->id => $new_parent_node
+                ];
 
                 if ($stmt_left_type && $stmt_left_type->parent_nodes) {
                     foreach ($stmt_left_type->parent_nodes as $parent_node) {
@@ -341,7 +353,9 @@ class BinaryOpAnalyzer
             $new_parent_node = ControlFlowNode::getForAssignment($type, $var_location);
             $statements_analyzer->control_flow_graph->addNode($new_parent_node);
 
-            $result_type->parent_nodes = [$new_parent_node];
+            $result_type->parent_nodes = [
+                $new_parent_node->id => $new_parent_node
+            ];
 
             if ($stmt_left_type && $stmt_left_type->parent_nodes) {
                 foreach ($stmt_left_type->parent_nodes as $parent_node) {

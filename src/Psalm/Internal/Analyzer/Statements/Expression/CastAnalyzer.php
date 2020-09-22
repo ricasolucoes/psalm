@@ -58,7 +58,7 @@ class CastAnalyzer
 
             if ($as_int) {
                 $type = Type::getInt();
-                $type->parent_nodes = $maybe_type ? $maybe_type->parent_nodes : null;
+                $type->parent_nodes = $maybe_type ? $maybe_type->parent_nodes : [];
                 $statements_analyzer->node_data->setType($stmt, $type);
             }
 
@@ -200,7 +200,7 @@ class CastAnalyzer
         $parent_nodes = [];
 
         if ($statements_analyzer->control_flow_graph) {
-            $parent_nodes = $stmt_type->parent_nodes ?: [];
+            $parent_nodes = $stmt_type->parent_nodes;
         }
 
         while ($atomic_types) {
@@ -276,7 +276,7 @@ class CastAnalyzer
                             );
 
                             if ($statements_analyzer->control_flow_graph) {
-                                $parent_nodes = array_merge($return_type->parent_nodes ?: [], $parent_nodes);
+                                $parent_nodes = array_merge($return_type->parent_nodes, $parent_nodes);
                             }
 
                             $castable_types = array_merge(

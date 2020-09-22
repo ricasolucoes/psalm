@@ -119,7 +119,7 @@ class InstancePropertyAssignmentAnalyzer
                 return false;
             }
 
-            $was_inside_use = $context->inside_use;
+            $context->inside_use = $was_inside_use;
 
             $lhs_type = $statements_analyzer->node_data->getType($stmt->var);
 
@@ -1215,7 +1215,7 @@ class InstancePropertyAssignmentAnalyzer
                     }
                 }
 
-                $stmt_var_type->parent_nodes = [$var_node];
+                $stmt_var_type->parent_nodes = [$var_node->id => $var_node];
 
                 $context->vars_in_scope[$var_id] = $stmt_var_type;
             }

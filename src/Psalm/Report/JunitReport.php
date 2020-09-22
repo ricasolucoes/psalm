@@ -23,7 +23,6 @@ class JunitReport extends Report
     public function create(): string
     {
         $errors = 0;
-        $warnings = 0;
         $tests = 0;
 
         $ndata = [];
@@ -34,9 +33,7 @@ class JunitReport extends Report
 
             if ($is_error) {
                 $errors++;
-            } elseif ($is_warning) {
-                $warnings++;
-            } else {
+            } elseif (!$is_warning) {
                 // currently this never happens
                 continue;
             }

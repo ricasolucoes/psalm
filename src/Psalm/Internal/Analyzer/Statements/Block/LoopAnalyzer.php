@@ -270,19 +270,25 @@ class LoopAnalyzer
 
                         // if there's a change, invalidate related clauses
                         $pre_loop_context->removeVarFromConflictingClauses($var_id);
+                    } else {
+                        $inner_context->vars_in_scope[$var_id]->parent_nodes
+                            = $type->parent_nodes + $pre_loop_type->parent_nodes;
                     }
 
-                    if (isset($loop_scope->loop_context->vars_in_scope[$var_id])
-                        && !$type->equals($loop_scope->loop_context->vars_in_scope[$var_id])
-                    ) {
-                        // widen the foreach context type with the initial context type
-                        $inner_context->vars_in_scope[$var_id] = Type::combineUnionTypes(
-                            $inner_context->vars_in_scope[$var_id],
-                            $loop_scope->loop_context->vars_in_scope[$var_id]
-                        );
+                    if (isset($loop_scope->loop_context->vars_in_scope[$var_id])) {
+                        if (!$type->equals($loop_scope->loop_context->vars_in_scope[$var_id])) {
+                            // widen the foreach context type with the initial context type
+                            $inner_context->vars_in_scope[$var_id] = Type::combineUnionTypes(
+                                $inner_context->vars_in_scope[$var_id],
+                                $loop_scope->loop_context->vars_in_scope[$var_id]
+                            );
 
-                        // if there's a change, invalidate related clauses
-                        $pre_loop_context->removeVarFromConflictingClauses($var_id);
+                            // if there's a change, invalidate related clauses
+                            $pre_loop_context->removeVarFromConflictingClauses($var_id);
+                        } else {
+                            $inner_context->vars_in_scope[$var_id]->parent_nodes
+                                += $loop_scope->loop_context->vars_in_scope[$var_id]->parent_nodes;
+                        }
                     }
                 }
 
@@ -421,6 +427,9 @@ class LoopAnalyzer
                 );
 
                 $loop_scope->loop_parent_context->removeVarFromConflictingClauses($var_id);
+            } else {
+                $loop_scope->loop_parent_context->vars_in_scope[$var_id]->parent_nodes
+                    += $loop_scope->loop_context->vars_in_scope[$var_id]->parent_nodes;
             }
         }
 
@@ -445,6 +454,11 @@ class LoopAnalyzer
                     );
 
                     $loop_scope->loop_parent_context->removeVarFromConflictingClauses($var_id);
+                } else {
+                    $loop_scope->loop_parent_context->vars_in_scope[$var_id]->parent_nodes = array_merge(
+                        $loop_scope->loop_parent_context->vars_in_scope[$var_id]->parent_nodes,
+                        $inner_context->vars_in_scope[$var_id]->parent_nodes
+                    );
                 }
             }
         }
@@ -541,13 +555,18 @@ class LoopAnalyzer
 
             if ($loop_scope->possibly_redefined_loop_vars) {
                 foreach ($loop_scope->possibly_redefined_loop_vars as $var => $type) {
-                    if ($loop_scope->loop_context->hasVariable($var)
-                        && !isset($updated_loop_vars[$var])
-                    ) {
-                        $loop_scope->loop_context->vars_in_scope[$var] = Type::combineUnionTypes(
-                            $loop_scope->loop_context->vars_in_scope[$var],
-                            $type
-                        );
+                    if ($loop_scope->loop_context->hasVariable($var)) {
+                        if (!isset($updated_loop_vars[$var])) {
+                            $loop_scope->loop_context->vars_in_scope[$var] = Type::combineUnionTypes(
+                                $loop_scope->loop_context->vars_in_scope[$var],
+                                $type
+                            );
+                        } else {
+                            $loop_scope->loop_context->vars_in_scope[$var]->parent_nodes = array_merge(
+                                $loop_scope->loop_context->vars_in_scope[$var]->parent_nodes,
+                                $type->parent_nodes
+                            );
+                        }
                     }
                 }
             }

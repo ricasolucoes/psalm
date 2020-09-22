@@ -809,7 +809,7 @@ class ArrayAssignmentAnalyzer
                 }
             }
 
-            $stmt_type->parent_nodes[] = $new_parent_node;
+            $stmt_type->parent_nodes[$new_parent_node->id] = $new_parent_node;
         }
     }
 }

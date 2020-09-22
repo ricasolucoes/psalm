@@ -52,15 +52,12 @@ class StaticCallAnalyzer extends CallAnalyzer
         Context $context
     ) : bool {
         $method_id = null;
-        $cased_method_id = null;
 
         $lhs_type = null;
 
         $file_analyzer = $statements_analyzer->getFileAnalyzer();
         $codebase = $statements_analyzer->getCodebase();
         $source = $statements_analyzer->getSource();
-
-        $stmt_type = null;
 
         $config = $codebase->config;
 
@@ -1461,7 +1458,7 @@ class StaticCallAnalyzer extends CallAnalyzer
 
         $statements_analyzer->control_flow_graph->addNode($method_source);
 
-        $return_type_candidate->parent_nodes = [$method_source];
+        $return_type_candidate->parent_nodes = [$method_source->id => $method_source];
 
         if ($method_storage && $method_storage->taint_source_types) {
             $method_node = TaintSource::getForMethodReturn(

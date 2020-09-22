@@ -1613,7 +1613,7 @@ class Codebase
         $this->taint_flow_graph->addSource($source);
 
         $expr_type->parent_nodes = [
-            $source,
+            $source->id => $source,
         ];
     }
 

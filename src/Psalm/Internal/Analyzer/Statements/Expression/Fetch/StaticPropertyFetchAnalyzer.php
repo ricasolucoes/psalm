@@ -34,8 +34,6 @@ class StaticPropertyFetchAnalyzer
             return true;
         }
 
-        $fq_class_name = null;
-
         $codebase = $statements_analyzer->getCodebase();
 
         if (count($stmt->class->parts) === 1

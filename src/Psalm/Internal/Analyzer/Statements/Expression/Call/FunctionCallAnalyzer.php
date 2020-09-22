@@ -854,7 +854,7 @@ class FunctionCallAnalyzer extends CallAnalyzer
                 $context->vars_in_scope,
                 $changed_var_ids,
                 array_map(
-                    function ($v): bool {
+                    function ($_): bool {
                         return true;
                     },
                     $assert_type_assertions
@@ -1077,7 +1077,7 @@ class FunctionCallAnalyzer extends CallAnalyzer
 
         $statements_analyzer->control_flow_graph->addNode($function_call_node);
 
-        $stmt_type->parent_nodes[] = $function_call_node;
+        $stmt_type->parent_nodes[$function_call_node->id] = $function_call_node;
 
         if ($function_storage->return_source_params) {
             $removed_taints = $function_storage->removed_taints;

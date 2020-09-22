@@ -178,6 +178,7 @@ class StatementsAnalyzer extends SourceAnalyzer implements StatementsSource
             && $codebase->find_unused_variables
             && $context->check_variables
         ) {
+            //var_dump($this->control_flow_graph);
             $this->checkUnreferencedVars($stmts);
         }
 
@@ -700,6 +701,7 @@ class StatementsAnalyzer extends SourceAnalyzer implements StatementsSource
 
             if (!isset($this->byref_uses[$var_id])
                 && !VariableFetchAnalyzer::isSuperGlobal($var_id)
+                && $this->control_flow_graph
                 && !$this->control_flow_graph->isVariableUsed($assignment_node)
             ) {
                 $issue = new UnusedVariable(

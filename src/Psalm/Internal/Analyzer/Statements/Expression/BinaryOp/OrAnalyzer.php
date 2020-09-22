@@ -66,7 +66,6 @@ class OrAnalyzer
                 $left_context = $if_conditional_scope->if_context;
 
                 $left_referenced_var_ids = $if_conditional_scope->cond_referenced_var_ids;
-                $left_assigned_var_ids = $if_conditional_scope->cond_assigned_var_ids;
             } catch (\Psalm\Exception\ScopeAnalysisException $e) {
                 return false;
             }

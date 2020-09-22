@@ -50,9 +50,4 @@ class SwitchScope
      * @var array<string, bool>|null
      */
     public $new_assigned_var_ids = null;
-
-    /**
-     * @var array<string, bool>
-     */
-    public $new_possibly_assigned_var_ids = [];
 }
